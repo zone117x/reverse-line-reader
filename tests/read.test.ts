@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { ReverseFileStream } from "..";
+import { ReverseFileStream, readLines } from "..";
 
 describe("event replay tests", () => {
   function writeTmpFile(contents: string): string {
@@ -12,6 +12,29 @@ describe("event replay tests", () => {
     fs.writeFileSync(filePath, contents);
     return filePath;
   }
+
+  test.only("read lines", async () => {
+    const path = "/Users/matt/Downloads/tsv/stacks-node-events.tsv";
+    const lineStream = await readLines(path);
+    let count = 0;
+    let lastLine = "";
+    for await (const line of lineStream) {
+      count++;
+      const str = line as string;
+      if (str.split("\t").length !== 4) {
+        throw new Error(`unexpected line: ${str}`);
+      }
+      if (count % 10_000 === 0) {
+        console.log(`read ${count} lines`);
+      }
+      lastLine = line;
+    }
+    console.log("done!");
+    console.log(`last line: ${lastLine}`);
+    expect(lastLine).toEqual(
+      `221356\t2022-04-13 17:00:42.374422+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x00000000000000000003d1792e7c5be8abaa23c3d932726b3877637127960f78", "burn_block_height": 731713, "reward_recipients": [{"amt": 1381740, "recipient": "3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y"}, {"amt": 1381740, "recipient": "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"}], "reward_slot_holders": ["3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y", "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"]}`
+    );
+  });
 
   test("ReverseFileStream handles backpressure", async () => {
     let contents = "";

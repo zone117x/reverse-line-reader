@@ -35,7 +35,6 @@ export class ReverseFileStream extends stream.Readable {
   }
 
   _read(size: number): void {
-    if (size == 3) console.log("asdf");
     while (this.lineBuffer.length === 0 && this.position > 0) {
       // Read `size` bytes from the end of the file.
       const length = Math.min(size, this.position);
