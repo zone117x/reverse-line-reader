@@ -94,7 +94,10 @@ export async function readLines(
   const fdStats = await fd.stat();
   const fileSize = fdStats.size;
   console.log(`file size: ${fileSize}`);
-  const fileReadStream = fd.createReadStream({ highWaterMark: readBufferSize });
+  const fileReadStream = fd.createReadStream({
+    encoding: "utf8",
+    highWaterMark: readBufferSize,
+  });
 
   let last = "";
   const decoder = new StringDecoder("utf8");
@@ -102,7 +105,6 @@ export async function readLines(
     return incoming;
   };
   const matcher = /\r?\n/;
-  let overflow = false;
 
   const push = (stream: stream.Readable, val: string) => {
     if (val !== undefined) {

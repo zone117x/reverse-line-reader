@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "./",
     "declaration": true,
+    "sourceMap": true,
     "noEmit": false,
   },
   "files": [
