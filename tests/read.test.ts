@@ -18,6 +18,7 @@ describe("event replay tests", () => {
     const lineStream = await readLines(path);
     let count = 0;
     let lastLine = "";
+    let firstLine = "";
     for await (const line of lineStream) {
       count++;
       const str = line as string;
@@ -27,13 +28,17 @@ describe("event replay tests", () => {
       if (count % 10_000 === 0) {
         console.log(`read ${count} lines`);
       }
+      if (count === 1) {
+        firstLine = line;
+      }
       lastLine = line;
     }
-    console.log("done!");
-    console.log(`last line: ${lastLine}`);
-    expect(lastLine).toEqual(
-      `221356\t2022-04-13 17:00:42.374422+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x00000000000000000003d1792e7c5be8abaa23c3d932726b3877637127960f78", "burn_block_height": 731713, "reward_recipients": [{"amt": 1381740, "recipient": "3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y"}, {"amt": 1381740, "recipient": "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"}], "reward_slot_holders": ["3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y", "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"]}`
-    );
+    const expectedFirstLine =
+      '1\t2022-03-23 17:20:02.955573+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x0000000000000000000b685acb303ca7476bbcc13f647f2ecf475d9e949b2f38", "burn_block_height": 666051, "reward_recipients": [], "reward_slot_holders": []}';
+    const expectedLastLine =
+      '221356\t2022-04-13 17:00:42.374422+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x00000000000000000003d1792e7c5be8abaa23c3d932726b3877637127960f78", "burn_block_height": 731713, "reward_recipients": [{"amt": 1381740, "recipient": "3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y"}, {"amt": 1381740, "recipient": "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"}], "reward_slot_holders": ["3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y", "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"]}';
+    expect(firstLine).toEqual(expectedFirstLine);
+    expect(lastLine).toEqual(expectedLastLine);
   });
 
   test("ReverseFileStream handles backpressure", async () => {

@@ -126,26 +126,8 @@ export async function readLines(
       callback();
     },
     transform: (chunk, _encoding, callback) => {
-      let list: string[];
-      // Line buffer is full. Skip to start of next line.
-      if (overflow) {
-        const buf = decoder.write(chunk);
-        list = buf.split(matcher);
-
-        // Line ending not found. Discard entire chunk.
-        if (list.length === 1) {
-          callback();
-          return;
-        }
-
-        // Line ending found. Discard trailing fragment of previous line and reset overflow state.
-        list.shift();
-        overflow = false;
-      } else {
-        last += decoder.write(chunk);
-        list = last.split(matcher);
-      }
-
+      last += decoder.write(chunk);
+      const list = last.split(matcher);
       last = list.pop() as string;
 
       for (let i = 0; i < list.length; i++) {
