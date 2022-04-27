@@ -13,14 +13,14 @@ describe("event replay tests", () => {
     return filePath;
   }
 
-  test.only("unicode boundary CRLF tests", async () => {
+  test("unicode boundary CRLF tests", async () => {
     const threeChar = "→";
     let fileContents = "";
     for (let i = 1; i < 1000; i++) {
       fileContents += threeChar.repeat(i % 10) + "\r\n";
     }
     const path = writeTmpFile(fileContents);
-    const lineStream = await readLines(path, 1);
+    const lineStream = await readLines(path, 3);
     let count = 0;
     for await (const line of lineStream) {
       count++;

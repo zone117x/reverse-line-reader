@@ -2,7 +2,6 @@ import * as stream from "stream";
 import { Transform } from "stream";
 import * as fs from "fs";
 import * as fsPromises from "fs/promises";
-import { StringDecoder } from "string_decoder";
 
 /**
  * Streams lines from a text file in reverse, starting from the end of the file.
@@ -100,7 +99,6 @@ export async function readLines(
   });
 
   let last = "";
-  const decoder = new StringDecoder("utf8");
   const mapper = (incoming: string) => {
     return incoming;
   };
@@ -116,7 +114,6 @@ export async function readLines(
     autoDestroy: true,
     readableObjectMode: true,
     flush: (callback) => {
-      last += decoder.end();
       if (last) {
         try {
           push(transformStream, mapper(last));
@@ -128,7 +125,7 @@ export async function readLines(
       callback();
     },
     transform: (chunk, _encoding, callback) => {
-      last += decoder.write(chunk);
+      last += chunk;
       const list = last.split(matcher);
       last = list.pop() as string;
 
