@@ -13,7 +13,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - name: Prepare git
+        run: |-
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v3
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.version }}
