@@ -13,7 +13,25 @@ describe("event replay tests", () => {
     return filePath;
   }
 
-  test.only("unicode boundary tests", async () => {
+  test.only("unicode boundary CRLF tests", async () => {
+    const threeChar = "→";
+    let fileContents = "";
+    for (let i = 1; i < 1000; i++) {
+      fileContents += threeChar.repeat(i % 10) + "\r\n";
+    }
+    const path = writeTmpFile(fileContents);
+    const lineStream = await readLines(path, 1);
+    let count = 0;
+    for await (const line of lineStream) {
+      count++;
+      const str = line as string;
+      expect(str).toBe(threeChar.repeat(count % 10));
+      // console.log(str);
+    }
+    console.log(`done: ${count}`);
+  });
+
+  test("unicode boundary tests", async () => {
     const threeChar = "→";
     let fileContents = "";
     for (let i = 1; i < 1000; i++) {
