@@ -1,5 +1,8 @@
 import * as stream from "stream";
+import { Transform } from "stream";
 import * as fs from "fs";
+import * as fsPromises from "fs/promises";
+import { StringDecoder } from "string_decoder";
 
 /**
  * Streams lines from a text file in reverse, starting from the end of the file.
@@ -78,4 +81,87 @@ export class ReverseFileStream extends stream.Readable {
   ): void {
     fs.closeSync(this.fileDescriptor);
   }
+}
+
+/**
+ * @param filePath - Path to the file to read.
+ * @param readBufferSize - Defaults to ~50 megabytes
+ */
+export async function readLines(
+  filePath: fs.PathLike,
+  readBufferSize = 50_000_000
+): Promise<stream.Readable> {
+  const fd = await fsPromises.open(filePath, "r");
+  const fdStats = await fd.stat();
+  const fileSize = fdStats.size;
+  console.log(`file size: ${fileSize}`);
+  const fileReadStream = fd.createReadStream({ highWaterMark: readBufferSize });
+
+  let last = "";
+  const decoder = new StringDecoder("utf8");
+  const mapper = (incoming: string) => {
+    return incoming;
+  };
+  const matcher = /\r?\n/;
+  let overflow = false;
+
+  const push = (stream: stream.Readable, val: string) => {
+    if (val !== undefined) {
+      stream.push(val);
+    }
+  };
+
+  const transformStream = new Transform({
+    autoDestroy: true,
+    readableObjectMode: true,
+    flush: (callback) => {
+      last += decoder.end();
+      if (last) {
+        try {
+          push(transformStream, mapper(last));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+      callback();
+    },
+    transform: (chunk, _encoding, callback) => {
+      let list: string[];
+      // Line buffer is full. Skip to start of next line.
+      if (overflow) {
+        const buf = decoder.write(chunk);
+        list = buf.split(matcher);
+
+        // Line ending not found. Discard entire chunk.
+        if (list.length === 1) {
+          callback();
+          return;
+        }
+
+        // Line ending found. Discard trailing fragment of previous line and reset overflow state.
+        list.shift();
+        overflow = false;
+      } else {
+        last += decoder.write(chunk);
+        list = last.split(matcher);
+      }
+
+      last = list.pop() as string;
+
+      for (let i = 0; i < list.length; i++) {
+        try {
+          push(transformStream, mapper(list[i]));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+
+      callback();
+    },
+  });
+
+  const pipelineResult = fileReadStream.pipe(transformStream);
+  return pipelineResult;
 }

@@ -4,8 +4,8 @@
   "description": "Read lines from a file backwards",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "build:tests": "tsc --project tests/tsconfig.json",
+    "build": "tsc --project tsconfig.build.json",
+    "build:tests": "tsc --project tsconfig.json",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint --fix . --ext .ts",
     "test": "jest"
@@ -39,7 +39,8 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testTimeout": 60000
   },
   "eslintConfig": {
     "root": true,
@@ -58,7 +59,8 @@
       "index.d.ts"
     ],
     "rules": {
-      "prettier/prettier": "error"
+      "prettier/prettier": "error",
+      "@typescript-eslint/no-explicit-any": "off"
     }
   }
 }
