@@ -1,0 +1,64 @@
+{
+  "name": "reverse-line-reader",
+  "version": "0.0.1",
+  "description": "Read lines from a file backwards",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:tests": "tsc --project tests/tsconfig.json",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint --fix . --ext .ts",
+    "test": "jest"
+  },
+  "bugs": {
+    "url": "https://github.com/zone117x/reverse-line-reader.js/issues"
+  },
+  "homepage": "https://github.com/zone117x/reverse-line-reader.js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zone117x/reverse-line-reader.js.git"
+  },
+  "license": "ISC",
+  "author": "Hiro Systems PBC <engineering@hiro.so> (https://hiro.so)",
+  "contributors": [
+    "Rafael Cárdenas <rafael@hiro.so>",
+    "Matthew Little <matt@hiro.so>"
+  ],
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "@types/node": "^16.11.31",
+    "@typescript-eslint/eslint-plugin": "^5.21.0",
+    "@typescript-eslint/parser": "^5.21.0",
+    "eslint": "^8.14.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "jest": "^27.5.1",
+    "prettier": "^2.6.2",
+    "ts-jest": "^27.1.4",
+    "typescript": "^4.6.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  },
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint",
+      "prettier"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "prettier"
+    ],
+    "ignorePatterns": [
+      "index.js",
+      "index.d.ts"
+    ],
+    "rules": {
+      "prettier/prettier": "error"
+    }
+  }
+}
