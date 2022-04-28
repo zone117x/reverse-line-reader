@@ -210,3 +210,64 @@ export async function readLines(
   const pipelineResult = fileReadStream.pipe(transformStream);
   return pipelineResult;
 }
+
+/**
+ * @param filePath - Path to the file to read.
+ * @param readBufferSize - Defaults to ~50 megabytes
+ */
+export function readLinesReversed(
+  filePath: fs.PathLike,
+  readBufferSize = 50_000_000
+): stream.Readable {
+  let last = "";
+  const mapper = (incoming: string) => {
+    return incoming;
+  };
+  // const matcher = "\n".charCodeAt(0);
+  const matcher = "\n";
+  const push = (stream: stream.Readable, val: string) => {
+    if (val !== undefined) {
+      stream.push(val);
+    }
+  };
+
+  const transformStream = new Transform({
+    autoDestroy: true,
+    readableObjectMode: true,
+    flush: (callback) => {
+      if (last) {
+        try {
+          push(transformStream, mapper(last));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+      callback();
+    },
+    transform: (chunk: Buffer, _encoding, callback) => {
+      last = chunk.toString("ascii") + last;
+      const list = last.split(matcher);
+      last = list.shift() as string;
+
+      for (let i = list.length - 1; i >= 0; i--) {
+        try {
+          push(transformStream, mapper(list[i]));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+
+      callback();
+    },
+  });
+
+  const reverseReadStream = createReverseFileReadStream(
+    filePath,
+    readBufferSize
+  );
+
+  const pipelineResult = reverseReadStream.pipe(transformStream);
+  return pipelineResult;
+}

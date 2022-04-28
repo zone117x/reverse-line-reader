@@ -1,7 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { ReverseFileStream, readLines, createReverseFileReadStream } from "..";
+import {
+  ReverseFileStream,
+  readLines,
+  createReverseFileReadStream,
+  readLinesReversed,
+} from "..";
 
 describe("event replay tests", () => {
   function writeTmpFile(contents: string): string {
@@ -12,6 +17,27 @@ describe("event replay tests", () => {
     fs.writeFileSync(filePath, contents);
     return filePath;
   }
+
+  test("streams file lines in reverse", async () => {
+    const contents = `line1
+line2
+line3
+line4`;
+    const testFilePath = writeTmpFile(contents);
+    try {
+      const reverseStream = readLinesReversed(testFilePath);
+      const output: string[] = [];
+      let linesStreamed = 0;
+      for await (const data of reverseStream) {
+        linesStreamed++;
+        output.push(data);
+      }
+      expect(linesStreamed).toEqual(4);
+      expect(output).toEqual(["line4", "line3", "line2", "line1"]);
+    } finally {
+      fs.unlinkSync(testFilePath);
+    }
+  });
 
   test("read file reversed", async () => {
     let fileContents = "first line";
