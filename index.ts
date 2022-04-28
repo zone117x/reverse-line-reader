@@ -1,5 +1,5 @@
 import * as stream from "stream";
-import { Transform } from "stream";
+import { Transform, Readable } from "stream";
 import * as fs from "fs";
 import * as fsPromises from "fs/promises";
 
@@ -79,6 +79,71 @@ export class ReverseFileStream extends stream.Readable {
   ): void {
     fs.closeSync(this.fileDescriptor);
   }
+}
+
+export function createReverseFileReadStream(
+  filePath: fs.PathLike,
+  readBufferSize = 50_000_000
+): Readable {
+  let fileDescriptor: number;
+  let fileSize: number;
+  let filePosition: number;
+  const reverseReadStream = new Readable({
+    highWaterMark: readBufferSize,
+    construct: (callback) => {
+      fs.open(filePath, "r", (error, fd) => {
+        if (error) {
+          callback(error);
+          return;
+        }
+        fileDescriptor = fd;
+        fs.fstat(fd, (error, stats) => {
+          if (error) {
+            callback(error);
+            return;
+          }
+          fileSize = stats.size;
+          filePosition = fileSize;
+          callback();
+        });
+      });
+    },
+    read: (size) => {
+      if (filePosition === 0) {
+        reverseReadStream.push(null);
+        return;
+      }
+      const readSize = Math.min(size, filePosition);
+      const buff = Buffer.allocUnsafe(readSize);
+      fs.read(
+        fileDescriptor,
+        buff,
+        0,
+        readSize,
+        filePosition - readSize,
+        (error, bytesRead) => {
+          if (error) {
+            reverseReadStream.destroy(error);
+            return;
+          }
+          filePosition -= bytesRead;
+          if (bytesRead > 0) {
+            reverseReadStream.push(buff.slice(0, bytesRead));
+          } else {
+            reverseReadStream.push(null);
+          }
+        }
+      );
+    },
+    destroy: (error, callback) => {
+      if (fileDescriptor) {
+        fs.close(fileDescriptor, (closeError) => callback(closeError || error));
+      } else {
+        callback(error);
+      }
+    },
+  });
+  return reverseReadStream;
 }
 
 /**

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { ReverseFileStream, readLines } from "..";
+import { ReverseFileStream, readLines, createReverseFileReadStream } from "..";
 
 describe("event replay tests", () => {
   function writeTmpFile(contents: string): string {
@@ -13,11 +13,34 @@ describe("event replay tests", () => {
     return filePath;
   }
 
+  test("read file reversed", async () => {
+    let fileContents = "first line";
+    for (let i = 1; i <= 1000; i++) {
+      fileContents += i.toString().padEnd(20, " ");
+    }
+    const path = writeTmpFile(fileContents);
+    const readStream = createReverseFileReadStream(path, 20);
+    let count = 1000;
+    for await (const chunk of readStream) {
+      const str = chunk.toString();
+      if (count === 0) {
+        expect(str).toBe("first line");
+      } else {
+        const parsedLine = parseInt(str);
+        if (parsedLine !== count) {
+          console.log("nope");
+        }
+        expect(parsedLine).toBe(count);
+      }
+      count--;
+    }
+  });
+
   test("unicode boundary CRLF tests", async () => {
     const threeChar = "→";
     let fileContents = "";
     for (let i = 1; i < 1000; i++) {
-      fileContents += threeChar.repeat(i % 10) + "\r\n";
+      fileContents += i + threeChar.repeat(i % 10) + "\r\n";
     }
     const path = writeTmpFile(fileContents);
     const lineStream = await readLines(path, 3);
@@ -25,8 +48,8 @@ describe("event replay tests", () => {
     for await (const line of lineStream) {
       count++;
       const str = line as string;
-      expect(str).toBe(threeChar.repeat(count % 10));
-      // console.log(str);
+      expect(str).toBe(count + threeChar.repeat(count % 10));
+      console.log(str);
     }
     console.log(`done: ${count}`);
   });
