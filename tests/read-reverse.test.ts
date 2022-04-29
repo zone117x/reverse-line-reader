@@ -3,7 +3,7 @@ import * as path from "path";
 import * as os from "os";
 import { createReverseFileReadStream, readLinesReversed } from "..";
 
-describe("event replay tests", () => {
+describe("read-reverse tests", () => {
   function writeTmpFile(contents: string): string {
     const fileDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "reverse-line-reader-tests-")
@@ -140,7 +140,7 @@ line4`;
     console.log(`finished, read ${count} chunks, ${bytesRead} bytes`);
   });
 
-  test.skip("perf read file lines reversed", async () => {
+  test.skip("perf reversed read file lines", async () => {
     const startTime = Date.now();
     const path = "/Users/matt/Downloads/tsv/stacks-node-events.tsv";
     const readStream = readLinesReversed(path, 5_000_000);
@@ -159,7 +159,6 @@ line4`;
         if (parts.length !== 4) {
           throw new Error(`unexpected line: ${line}`);
         }
-        // JSON.parse(parts[3]);
       }
       last = line;
       count++;

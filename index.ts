@@ -74,6 +74,22 @@ export function createReverseFileReadStream(
   });
 }
 
+function splitBuffer(input: Buffer, matcher: number): Buffer[] {
+  const chunks: Buffer[] = [];
+  let position = 0;
+  let matchIndex: number;
+  do {
+    matchIndex = input.indexOf(matcher, position);
+    if (matchIndex === -1) {
+      chunks.push(input.subarray(position));
+    } else {
+      chunks.push(input.subarray(position, matchIndex));
+    }
+    position = matchIndex + 1;
+  } while (matchIndex !== -1);
+  return chunks;
+}
+
 /**
  * @param filePath - Path to the file to read.
  * @param readBufferSize - Defaults to ~5 megabytes
@@ -85,22 +101,6 @@ export function readLinesReversed(
   let last: Buffer | undefined = undefined;
   const matcher = "\n".charCodeAt(0);
 
-  const splitBuffer = (input: Buffer) => {
-    const chunks: Buffer[] = [];
-    let position = 0;
-    let matchIndex: number;
-    do {
-      matchIndex = input.indexOf(matcher, position);
-      if (matchIndex === -1) {
-        chunks.push(input.subarray(position));
-      } else {
-        chunks.push(input.subarray(position, matchIndex));
-      }
-      position = matchIndex + 1;
-    } while (matchIndex !== -1);
-    return chunks;
-  };
-
   const reverseReadStream = createReverseFileReadStream(
     filePath,
     readBufferSize
@@ -111,7 +111,7 @@ export function readLinesReversed(
     readableObjectMode: true,
     writableHighWaterMark: readBufferSize,
     flush: (callback) => {
-      if (last && last.length > 0) {
+      if (last) {
         try {
           transformStream.push(last.toString("utf8"));
         } catch (error: any) {
@@ -127,7 +127,7 @@ export function readLinesReversed(
       } else {
         last = chunk;
       }
-      const list = splitBuffer(last);
+      const list = splitBuffer(last, matcher);
       last = list.shift();
 
       for (let i = list.length - 1; i >= 0; i--) {
@@ -142,7 +142,7 @@ export function readLinesReversed(
       callback();
     },
     destroy: (error, callback) => {
-      reverseReadStream.destroy(error ?? undefined);
+      reverseReadStream.destroy(error || undefined);
       callback(error);
     },
   });
@@ -151,5 +151,69 @@ export function readLinesReversed(
   return Object.assign(pipelineResult, {
     getFileSize: reverseReadStream.getFileSize,
     getBytesRead: reverseReadStream.getBytesRead,
+  });
+}
+
+/**
+ * @param filePath - Path to the file to read.
+ * @param readBufferSize - Defaults to ~5 megabytes
+ */
+export function readLines(
+  filePath: fs.PathLike,
+  readBufferSize = 5_000_000
+): ReadableFileStream {
+  let last: Buffer | undefined = undefined;
+  const matcher = "\n".charCodeAt(0);
+
+  const fileReadStream = fs.createReadStream(filePath, {
+    flags: "r",
+    highWaterMark: readBufferSize,
+  });
+
+  const transformStream = new Transform({
+    autoDestroy: true,
+    readableObjectMode: true,
+    writableHighWaterMark: readBufferSize,
+    flush: (callback) => {
+      if (last) {
+        try {
+          transformStream.push(last.toString("utf8"));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+      callback();
+    },
+    transform: (chunk: Buffer, _encoding, callback) => {
+      if (last !== undefined) {
+        last = Buffer.concat([last, chunk]);
+      } else {
+        last = chunk;
+      }
+      const list = splitBuffer(last, matcher);
+      last = list.pop();
+
+      for (let i = 0; i < list.length; i++) {
+        try {
+          transformStream.push(list[i].toString("utf8"));
+        } catch (error: any) {
+          callback(error);
+          return;
+        }
+      }
+
+      callback();
+    },
+    destroy: (error, callback) => {
+      fileReadStream.destroy(error || undefined);
+      callback(error);
+    },
+  });
+
+  const pipelineResult = fileReadStream.pipe(transformStream);
+  return Object.assign(pipelineResult, {
+    getFileSize: () => fs.statSync(filePath).size,
+    getBytesRead: () => fileReadStream.bytesRead,
   });
 }
