@@ -18,6 +18,25 @@ describe("event replay tests", () => {
     return filePath;
   }
 
+  test("unicode boundary tests reverse stream", async () => {
+    const threeChar = "→";
+    let fileContents = "";
+    for (let i = 1; i <= 1000; i++) {
+      fileContents += threeChar.repeat(i % 10);
+      if (i < 1000 - 1) {
+        fileContents += "\n";
+      }
+    }
+    const path = writeTmpFile(fileContents);
+    const lineStream = readLinesReversed(path, 1);
+    let count = 0;
+    for await (const line of lineStream) {
+      count++;
+      const str = line as string;
+      expect(str).toBe(threeChar.repeat((1000 - count) % 10));
+    }
+  });
+
   test("streams file lines in reverse", async () => {
     const contents = `line1
 line2
@@ -25,7 +44,7 @@ line3
 line4`;
     const testFilePath = writeTmpFile(contents);
     try {
-      const reverseStream = readLinesReversed(testFilePath);
+      const reverseStream = readLinesReversed(testFilePath, 1);
       const output: string[] = [];
       let linesStreamed = 0;
       for await (const data of reverseStream) {
@@ -53,9 +72,6 @@ line4`;
         expect(str).toBe("first line");
       } else {
         const parsedLine = parseInt(str);
-        if (parsedLine !== count) {
-          console.log("nope");
-        }
         expect(parsedLine).toBe(count);
       }
       count--;
@@ -75,9 +91,7 @@ line4`;
       count++;
       const str = line as string;
       expect(str).toBe(count + threeChar.repeat(count % 10));
-      console.log(str);
     }
-    console.log(`done: ${count}`);
   });
 
   test("unicode boundary tests", async () => {
@@ -93,37 +107,7 @@ line4`;
       count++;
       const str = line as string;
       expect(str).toBe(threeChar.repeat(count % 10));
-      // console.log(str);
     }
-    console.log(`done: ${count}`);
-  });
-
-  test("read lines", async () => {
-    const path = "/Users/matt/Downloads/tsv/stacks-node-events.tsv";
-    const lineStream = await readLines(path);
-    let count = 0;
-    let lastLine = "";
-    let firstLine = "";
-    for await (const line of lineStream) {
-      count++;
-      const str = line as string;
-      if (str.split("\t").length !== 4) {
-        throw new Error(`unexpected line: ${str}`);
-      }
-      if (count % 10_000 === 0) {
-        console.log(`read ${count} lines`);
-      }
-      if (count === 1) {
-        firstLine = line;
-      }
-      lastLine = line;
-    }
-    const expectedFirstLine =
-      '1\t2022-03-23 17:20:02.955573+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x0000000000000000000b685acb303ca7476bbcc13f647f2ecf475d9e949b2f38", "burn_block_height": 666051, "reward_recipients": [], "reward_slot_holders": []}';
-    const expectedLastLine =
-      '221356\t2022-04-13 17:00:42.374422+00\t/new_burn_block\t{"burn_amount": 0, "burn_block_hash": "0x00000000000000000003d1792e7c5be8abaa23c3d932726b3877637127960f78", "burn_block_height": 731713, "reward_recipients": [{"amt": 1381740, "recipient": "3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y"}, {"amt": 1381740, "recipient": "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"}], "reward_slot_holders": ["3JKMrnhrzboCTX3AZZLyFBwia2sQsZ2e3y", "34SnMGqJEFSbskYJt6Y79yRXVAFfVRRAHj"]}';
-    expect(firstLine).toEqual(expectedFirstLine);
-    expect(lastLine).toEqual(expectedLastLine);
   });
 
   test("ReverseFileStream handles backpressure", async () => {

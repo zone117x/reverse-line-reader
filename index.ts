@@ -219,16 +219,29 @@ export function readLinesReversed(
   filePath: fs.PathLike,
   readBufferSize = 50_000_000
 ): stream.Readable {
-  let last = "";
-  const mapper = (incoming: string) => {
-    return incoming;
-  };
-  // const matcher = "\n".charCodeAt(0);
-  const matcher = "\n";
+  let last = Buffer.alloc(0);
+  const matcher = "\n".charCodeAt(0);
+
   const push = (stream: stream.Readable, val: string) => {
     if (val !== undefined) {
       stream.push(val);
     }
+  };
+
+  const splitBuffer = (input: Buffer) => {
+    const chunks: Buffer[] = [];
+    let position = 0;
+    let matchIndex: number;
+    do {
+      matchIndex = input.indexOf(matcher, position);
+      if (matchIndex === -1) {
+        chunks.push(input.subarray(position));
+      } else {
+        chunks.push(input.subarray(position, matchIndex));
+      }
+      position = matchIndex + 1;
+    } while (matchIndex !== -1);
+    return chunks;
   };
 
   const transformStream = new Transform({
@@ -237,7 +250,7 @@ export function readLinesReversed(
     flush: (callback) => {
       if (last) {
         try {
-          push(transformStream, mapper(last));
+          push(transformStream, last.toString("utf8"));
         } catch (error: any) {
           callback(error);
           return;
@@ -246,13 +259,13 @@ export function readLinesReversed(
       callback();
     },
     transform: (chunk: Buffer, _encoding, callback) => {
-      last = chunk.toString("ascii") + last;
-      const list = last.split(matcher);
-      last = list.shift() as string;
+      last = Buffer.concat([chunk, last]);
+      const list = splitBuffer(last);
+      last = list.shift() as Buffer;
 
       for (let i = list.length - 1; i >= 0; i--) {
         try {
-          push(transformStream, mapper(list[i]));
+          push(transformStream, list[i].toString("utf8"));
         } catch (error: any) {
           callback(error);
           return;
