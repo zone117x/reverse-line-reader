@@ -23,14 +23,18 @@ describe("read-reverse tests", () => {
       }
     }
     const path = writeTmpFile(fileContents);
-    const lineStream = readLinesReversed(path, 1);
-    let count = 0;
-    for await (const line of lineStream) {
-      const str = line as string;
-      const expected =
-        (1000 - count).toString() + threeChar.repeat((1000 - count) % 10);
-      expect(str).toBe(expected);
-      count++;
+    try {
+      const lineStream = readLinesReversed(path, 1);
+      let count = 0;
+      for await (const line of lineStream) {
+        const str = line as string;
+        const expected =
+          (1000 - count).toString() + threeChar.repeat((1000 - count) % 10);
+        expect(str).toBe(expected);
+        count++;
+      }
+    } finally {
+      fs.unlinkSync(path);
     }
   });
 
@@ -61,17 +65,21 @@ line4`;
       fileContents += i.toString().padEnd(20, " ");
     }
     const path = writeTmpFile(fileContents);
-    const readStream = createReverseFileReadStream(path, 20);
-    let count = 1000;
-    for await (const chunk of readStream) {
-      const str = chunk.toString();
-      if (count === 0) {
-        expect(str).toBe("first line");
-      } else {
-        const parsedLine = parseInt(str);
-        expect(parsedLine).toBe(count);
+    try {
+      const readStream = createReverseFileReadStream(path, 20);
+      let count = 1000;
+      for await (const chunk of readStream) {
+        const str = chunk.toString();
+        if (count === 0) {
+          expect(str).toBe("first line");
+        } else {
+          const parsedLine = parseInt(str);
+          expect(parsedLine).toBe(count);
+        }
+        count--;
       }
-      count--;
+    } finally {
+      fs.unlinkSync(path);
     }
   });
 
