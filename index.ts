@@ -219,7 +219,7 @@ export function readLinesReversed(
   filePath: fs.PathLike,
   readBufferSize = 50_000_000
 ): stream.Readable {
-  let last = Buffer.alloc(0);
+  let last: Buffer | undefined = undefined;
   const matcher = "\n".charCodeAt(0);
 
   const push = (stream: stream.Readable, val: string) => {
@@ -248,7 +248,7 @@ export function readLinesReversed(
     autoDestroy: true,
     readableObjectMode: true,
     flush: (callback) => {
-      if (last) {
+      if (last && last.length > 0) {
         try {
           push(transformStream, last.toString("utf8"));
         } catch (error: any) {
@@ -259,9 +259,13 @@ export function readLinesReversed(
       callback();
     },
     transform: (chunk: Buffer, _encoding, callback) => {
+      if (last !== undefined) {
       last = Buffer.concat([chunk, last]);
+      } else {
+        last = chunk;
+      }
       const list = splitBuffer(last);
-      last = list.shift() as Buffer;
+      last = list.shift();
 
       for (let i = list.length - 1; i >= 0; i--) {
         try {
