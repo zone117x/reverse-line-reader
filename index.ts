@@ -8,7 +8,7 @@ export interface ReadableFileStream extends Readable {
 
 export function createReverseFileReadStream(
   filePath: fs.PathLike,
-  readBufferSize: number
+  readBufferSize = 5_000_000
 ): ReadableFileStream {
   let fileDescriptor: number;
   let fileSize: number;
