@@ -104,3 +104,4 @@ dist
 .tern-port
 index.d.ts
 index.js
+tests/.tmp
