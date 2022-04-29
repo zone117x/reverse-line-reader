@@ -1,10 +1,15 @@
 import { Transform, Readable } from "stream";
 import * as fs from "fs";
 
+export interface ReadableFileStream extends Readable {
+  getFileSize(): number;
+  getBytesRead(): number;
+}
+
 export function createReverseFileReadStream(
   filePath: fs.PathLike,
   readBufferSize: number
-): Readable {
+): ReadableFileStream {
   let fileDescriptor: number;
   let fileSize: number;
   let filePosition: number;
@@ -63,7 +68,10 @@ export function createReverseFileReadStream(
       }
     },
   });
-  return reverseReadStream;
+  return Object.assign(reverseReadStream, {
+    getFileSize: () => fileSize,
+    getBytesRead: () => fileSize - filePosition,
+  });
 }
 
 /**
@@ -73,7 +81,7 @@ export function createReverseFileReadStream(
 export function readLinesReversed(
   filePath: fs.PathLike,
   readBufferSize = 5_000_000
-): Readable {
+): ReadableFileStream {
   let last: Buffer | undefined = undefined;
   const matcher = "\n".charCodeAt(0);
 
@@ -115,7 +123,7 @@ export function readLinesReversed(
     },
     transform: (chunk: Buffer, _encoding, callback) => {
       if (last !== undefined) {
-      last = Buffer.concat([chunk, last]);
+        last = Buffer.concat([chunk, last]);
       } else {
         last = chunk;
       }
@@ -140,5 +148,8 @@ export function readLinesReversed(
   });
 
   const pipelineResult = reverseReadStream.pipe(transformStream);
-  return pipelineResult;
+  return Object.assign(pipelineResult, {
+    getFileSize: reverseReadStream.getFileSize,
+    getBytesRead: reverseReadStream.getBytesRead,
+  });
 }

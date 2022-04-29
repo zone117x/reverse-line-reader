@@ -104,7 +104,9 @@ line4`;
         `line${lineCount - 2}`,
         `line${lineCount - 3}`,
       ]);
-      // expect(reverseStream.bytesRead).toBeLessThan(reverseStream.fileLength);
+      expect(reverseStream.getBytesRead()).toBeLessThan(
+        reverseStream.getFileSize()
+      );
 
       // Read whole file
       const reverseStream2 = readLinesReversed(testFilePath, 30);
@@ -117,7 +119,7 @@ line4`;
       expect(linesStreamed2).toEqual(lineCount);
       expect(output2[0]).toBe(`line${lineCount}`);
       expect(output2[output2.length - 1]).toBe("line1");
-      // expect(reverseStream2.bytesRead).toBe(reverseStream2.fileLength);
+      expect(reverseStream2.getBytesRead()).toBe(reverseStream2.getFileSize());
     } finally {
       fs.unlinkSync(testFilePath);
     }
