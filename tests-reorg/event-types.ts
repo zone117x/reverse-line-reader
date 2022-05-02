@@ -30,3 +30,11 @@ export interface CoreNodeBlockMessage {
     tx_fees_streamed_produced: string;
   }[];
 }
+
+export interface CoreNodeBurnBlockMessage {
+  burn_block_hash: string;
+  burn_block_height: number;
+  burn_amount: number;
+  reward_recipients: unknown[];
+  reward_slot_holders: unknown[];
+}
