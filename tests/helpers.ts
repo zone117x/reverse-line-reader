@@ -1,10 +1,25 @@
 import * as path from "path";
 import * as fs from "fs";
+import * as os from "os";
 import * as inspector from "inspector";
 import * as process from "process";
 import * as crypto from "crypto";
 
-function uniqueID(): string {
+export function getTempFile(): string {
+  const fileDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "reverse-line-reader-tests-")
+  );
+  const filePath: string = path.join(fileDir, "test-data");
+  return filePath;
+}
+
+export function writeTmpFile(contents: string): string {
+  const filePath = getTempFile();
+  fs.writeFileSync(filePath, contents);
+  return filePath;
+}
+
+export function uniqueID(): string {
   const rand = crypto.randomFillSync(Buffer.alloc(3));
   return rand.toString("hex");
 }

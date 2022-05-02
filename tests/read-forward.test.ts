@@ -1,16 +1,6 @@
 import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 import { readLines } from "..";
-
-function writeTmpFile(contents: string): string {
-  const fileDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "reverse-line-reader-tests-")
-  );
-  const filePath: string = path.join(fileDir, "test-data");
-  fs.writeFileSync(filePath, contents);
-  return filePath;
-}
+import { writeTmpFile } from "./helpers";
 
 describe("read-forward tests", () => {
   test("unicode boundary tests", async () => {
