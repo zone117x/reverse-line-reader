@@ -105,3 +105,4 @@ dist
 index.d.ts
 index.js
 tests/.tmp
+.profile
