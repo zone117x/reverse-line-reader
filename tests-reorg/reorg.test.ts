@@ -1,4 +1,4 @@
-import { Transform } from "stream";
+import { Transform, Writable, Readable } from "stream";
 import { pipeline } from "stream/promises";
 import * as fs from "fs";
 import { readLines, readLinesReversed } from "..";
@@ -115,17 +115,10 @@ async function getCanonicalEntityList(tsvFilePath: string): Promise<{
   };
 }
 
-async function performTsvReorg(
-  inputTsvFile: string,
+function createTsvReorgStream(
   canonicalIndexBlockHashes: string[],
-  canonicalBurnBlockHashes: string[],
-  outfileTsvFile: string
-): Promise<void> {
-  const inputLineReader = readLines(inputTsvFile);
-  const outputFileStream = fs.createWriteStream(outfileTsvFile, {
-    flags: "wx", // create if not exist, throw error if already exist
-    encoding: "utf8",
-  });
+  canonicalBurnBlockHashes: string[]
+): Transform {
   let nextCanonicalStacksBlockIndex = 0;
   let nextCanonicalBurnBlockIndex = 0;
   const filterStream = new Transform({
@@ -174,7 +167,7 @@ async function performTsvReorg(
       callback();
     },
   });
-  await pipeline(inputLineReader, filterStream, outputFileStream);
+  return filterStream;
 }
 
 describe("re-org tests", () => {
@@ -193,12 +186,13 @@ describe("re-org tests", () => {
       `Finished with Stacks canonical: ${result.canonicalStacksBlockCount}, Stacks orphaned: ${result.orphanStacksBlockCount}, burn blocks canonical: ${result.canonicalBurnBlockCount}, burn blocks orphaned ${result.orphanBurnBlockCount}`
     );
     const tsvOutputFile = getTempFile();
+    const outputFileStream = fs.createWriteStream(tsvOutputFile);
     console.log(`Writing re-org'd tsv file to: ${tsvOutputFile}`);
-    await performTsvReorg(
-      testTsvPath,
+    const inputLineReader = readLines(testTsvPath);
+    const transformStream = createTsvReorgStream(
       result.indexBlockHashes,
-      result.burnBlockHashes,
-      tsvOutputFile
+      result.burnBlockHashes
     );
+    await pipeline(inputLineReader, transformStream, outputFileStream);
   });
 });
