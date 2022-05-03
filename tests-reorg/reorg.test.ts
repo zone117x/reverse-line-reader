@@ -1,4 +1,4 @@
-import { Transform, Writable, Readable } from "stream";
+import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 import * as fs from "fs";
 import { readLines, readLinesReversed } from "..";
@@ -121,6 +121,7 @@ function createTsvReorgStream(
 ): Transform {
   let nextCanonicalStacksBlockIndex = 0;
   let nextCanonicalBurnBlockIndex = 0;
+  const eventIdsRead = new Set<number>();
   const filterStream = new Transform({
     objectMode: true,
     autoDestroy: true,
@@ -130,6 +131,13 @@ function createTsvReorgStream(
         return;
       }
       const parts = line.split("\t");
+      const eventId = parseInt(parts[0]);
+      // ignore duplicate events
+      if (eventIdsRead.has(eventId)) {
+        callback();
+        return;
+      }
+      eventIdsRead.add(eventId);
       if (parts[2] === "/new_block") {
         const block: CoreNodeBlockMessage = JSON.parse(parts[3]);
         if (
